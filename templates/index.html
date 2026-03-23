@@ -24,8 +24,15 @@
                         <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com" required>
                     </div>
                     <div class="form-group">
-                        <label for="keyword">搜索关键词</label>
-                        <input type="text" class="form-control" id="keyword" name="keyword" placeholder="请输入要搜索的关键词" required>
+                        <label for="keyword">搜索关键词 (多个关键词用逗号分隔)</label>
+                        <input type="text" class="form-control" id="keyword" name="keyword" placeholder="请输入要搜索的关键词，多个关键词用逗号分隔" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="log-level">日志级别</label>
+                        <select class="form-control" id="log-level" name="log_level">
+                            <option value="info">信息</option>
+                            <option value="debug">调试</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="max_pages">最大爬取页面数</label>
@@ -65,9 +72,9 @@
                         {% for task in tasks %}
                             <tr>
                                 <td>{{ task.id }}</td>
-                                <td>{{ task.url[:50] }}{% if task.url|length > 50 %}...{% endif %}</td>
-                                <td>{{ task.keyword }}</td>
-                                <td>{{ task.max_pages }}</td>
+                        <td>{{ task.url[:50] }}{% if task.url|length > 50 %}...{% endif %}</td>
+                        <td>{{ task.keywords }}</td>
+                        <td>{{ task.max_pages }}</td>
                                 <td>
                                     <span class="badge {% if task.status == 'running' %}badge-warning{% elif task.status == 'completed' %}badge-success{% elif task.status == 'failed' %}badge-danger{% else %}badge-secondary{% endif %}">
                                         {{ task.status }}
@@ -84,6 +91,10 @@
                                     {% endif %}
                                     {% if task.status == 'completed' or task.status == 'failed' %}
                                         <a href="/task_results/{{ task.id }}" class="btn btn-sm btn-info">查看结果</a>
+                                        <button class="btn btn-sm btn-secondary" onclick="showLogs({{ task.id }});">查看日志</button>
+                                        <a href="/restart_task/{{ task.id }}" class="btn btn-sm btn-warning" onclick="return confirm('确定要重新爬取这个任务吗？');">重新爬取</a>
+                                    {% elif task.status == 'running' %}
+                                        <button class="btn btn-sm btn-secondary" onclick="showLogs({{ task.id }});">查看日志</button>
                                     {% endif %}
                                     <a href="/delete_task/{{ task.id }}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除这个任务吗？');">删除</a>
                                 </td>
@@ -95,6 +106,28 @@
         </div>
     </div>
     
+    <!-- 日志模态框 -->
+    <div class="modal fade" id="logsModal" tabindex="-1" role="dialog" aria-labelledby="logsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logsModalLabel">爬取日志</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="logsContent" style="max-height: 400px; overflow-y: auto;">
+                        <!-- 日志内容将在这里显示 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 实时更新任务状态
         function updateTaskStatus() {
@@ -110,6 +143,35 @@
         
         // 每3秒更新一次
         setInterval(updateTaskStatus, 3000);
+        
+        // 显示日志
+        function showLogs(taskId) {
+            $.get('/api/task_logs/' + taskId, function(data) {
+                var logsContent = $('#logsContent');
+                logsContent.empty();
+                
+                if (data.logs && data.logs.length > 0) {
+                    data.logs.forEach(function(log) {
+                        var logTime = new Date(log.time * 1000).toLocaleString();
+                        var logClass = 'text-info';
+                        if (log.level === 'error') {
+                            logClass = 'text-danger';
+                        } else if (log.level === 'debug') {
+                            logClass = 'text-muted';
+                        }
+                        
+                        var logItem = $('<div class="mb-2"></div>');
+                        logItem.append('<small class="text-muted">' + logTime + '</small> ');
+                        logItem.append('<span class="' + logClass + '">' + log.message + '</span>');
+                        logsContent.append(logItem);
+                    });
+                } else {
+                    logsContent.append('<p class="text-muted">暂无日志</p>');
+                }
+                
+                $('#logsModal').modal('show');
+            });
+        }
     </script>
 </body>
 </html>
