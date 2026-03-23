@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>爬取结果 - 爬虫管理后台</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-5">爬取结果</h1>
+        
+        <!-- 任务信息 -->
+        <div class="card mb-5">
+            <div class="card-header">
+                <h3>任务信息</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>网站链接:</strong> <a href="{{ task.url }}" target="_blank">{{ task.url }}</a></p>
+                        <p><strong>搜索关键词:</strong> {{ task.keyword }}</p>
+                        <p><strong>最大爬取页面数:</strong> {{ task.max_pages }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>状态:</strong> 
+                            <span class="badge {% if task.status == 'running' %}badge-warning{% elif task.status == 'completed' %}badge-success{% elif task.status == 'failed' %}badge-danger{% else %}badge-secondary{% endif %}">
+                                {{ task.status }}
+                            </span>
+                        </p>
+                        <p><strong>开始时间:</strong> {% if task.start_time %}{{ task.start_time|timestamp_to_datetime }}{% else %}未开始{% endif %}</p>
+                        <p><strong>结束时间:</strong> {% if task.end_time %}{{ task.end_time|timestamp_to_datetime }}{% else %}未结束{% endif %}</p>
+                        {% if task.error_message %}
+                            <p><strong>错误信息:</strong> {{ task.error_message }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 结果列表 -->
+        <div class="card">
+            <div class="card-header">
+                <h3>搜索结果 (共 {{ results|length }} 个)</h3>
+            </div>
+            <div class="card-body">
+                {% if results %}
+                    <div class="list-group">
+                        {% for result in results %}
+                            <div class="list-group-item mb-3">
+                                <h5 class="mb-1"><a href="{{ result.url }}" target="_blank">{{ result.title }}</a></h5>
+                                <p class="mb-1 text-muted">{{ result.url }}</p>
+                                <div class="mt-2 p-2 bg-light rounded">
+                                    <p>{{ result.context }}</p>
+                                </div>
+                                <small class="text-muted mt-2 d-block">发现时间: {{ result.found_at|timestamp_to_datetime }}</small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        未找到包含关键词 "{{ task.keyword }}" 的页面
+                    </div>
+                {% endif %}
+                <a href="/" class="btn btn-primary mt-4">返回任务列表</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 格式化时间戳
+        $(document).ready(function() {
+            $('.timestamp').each(function() {
+                var timestamp = parseFloat($(this).data('timestamp'));
+                var date = new Date(timestamp * 1000);
+                $(this).text(date.toLocaleString());
+            });
+        });
+    </script>
+</body>
+</html>
